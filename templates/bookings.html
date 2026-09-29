@@ -1,11 +1,153 @@
-{% extends "base.html" %}{% block content %}<h2>Bookings</h2>
-<div class="card"><form method="post">
-<select name="guest_id" required>{% for g in guests %}<option value="{{ g.id }}">{{ g.name }}</option>{% endfor %}</select>
-<select name="room_id" required>{% for r in rooms %}<option value="{{ r.id }}">{{ r.number }} ({{ r.type }})</option>{% endfor %}</select>
-<input type="date" name="check_in" required><input type="date" name="check_out" required><button>Book</button></form></div>
-<div class="card"><table><tr><th>#</th><th>Guest</th><th>Room</th><th>In</th><th>Out</th><th>Status</th><th></th></tr>
-{% for b in bookings %}<tr><td>{{ b.id }}</td><td>{{ b.guest }}</td><td>{{ b.room }}</td><td>{{ b.check_in }}</td><td>{{ b.check_out }}</td><td>{{ b.status }}</td><td>
-{% if b.status == 'booked' %}<form class="inline" method="post" action="{{ url_for('booking_action', bid=b.id, action='checkin') }}"><button>Check-in</button></form>
-<form class="inline" method="post" action="{{ url_for('booking_action', bid=b.id, action='cancel') }}"><button class="red">Cancel</button></form>
-{% elif b.status == 'checked_in' %}<form class="inline" method="post" action="{{ url_for('booking_action', bid=b.id, action='checkout') }}"><button>Check-out</button></form>
-{% elif b.status == 'checked_out' %}<a href="{{ url_for('invoice', bid=b.id) }}">Invoice</a>{% endif %}</td></tr>{% endfor %}</table></div>{% endblock %}
+{% extends "base.html" %}
+{% block title %}Bookings{% endblock %}
+{% block content %}
+<h2>Bookings</h2>
+
+<!-- Summary -->
+<div class="summary">
+  <div class="card"><span class="muted">Booked</span><strong>{{ counts.booked }}</strong></div>
+  <div class="card"><span class="muted">Checked in</span><strong>{{ counts.checked_in }}</strong></div>
+  <div class="card"><span class="muted">Checked out</span><strong>{{ counts.checked_out }}</strong></div>
+  <div class="card"><span class="muted">Cancelled</span><strong>{{ counts.cancelled }}</strong></div>
+</div>
+
+<!-- New booking -->
+<div class="card">
+  <h3>New booking</h3>
+  <form method="post" action="{{ url_for('bookings') }}" class="grid">
+    <label>Guest
+      <select name="guest_id" required>
+        <option value="">Choose a guest</option>
+        {% for g in guests %}
+          <option value="{{ g.id }}">{{ g.name }}{% if g.phone %} · {{ g.phone }}{% endif %}</option>
+        {% endfor %}
+      </select>
+    </label>
+    <label>Room
+      <select name="room_id" id="room_id" required>
+        <option value="">Choose a room</option>
+        {% for r in rooms %}
+          <option value="{{ r.id }}" data-price="{{ r.price }}">
+            {{ r.number }} ({{ r.type }}) · ${{ '%.2f'|format(r.price) }}/night
+          </option>
+        {% endfor %}
+      </select>
+    </label>
+    <label>Check-in
+      <input type="date" name="check_in" id="check_in" min="{{ today }}" required>
+    </label>
+    <label>Check-out
+      <input type="date" name="check_out" id="check_out" min="{{ today }}" required>
+    </label>
+    <label>Guests staying
+      <input type="number" name="party_size" min="1" value="1">
+    </label>
+    <label>Notes
+      <input name="notes" placeholder="Late arrival, extra bed, requests">
+    </label>
+    <button>Book room</button>
+  </form>
+  <p class="muted" id="estimate"></p>
+</div>
+
+<!-- Filters -->
+<div class="card">
+  <form method="get" action="{{ url_for('bookings') }}" class="filters">
+    <input name="q" value="{{ q or '' }}" placeholder="Search guest or room">
+    <select name="status">
+      {% for value, label in [('', 'All statuses'), ('booked', 'Booked'), ('checked_in', 'Checked in'),
+                              ('checked_out', 'Checked out'), ('cancelled', 'Cancelled')] %}
+        <option value="{{ value }}" {{ 'selected' if status == value else '' }}>{{ label }}</option>
+      {% endfor %}
+    </select>
+    <label class="inline-label">From
+      <input type="date" name="from" value="{{ date_from or '' }}">
+    </label>
+    <label class="inline-label">To
+      <input type="date" name="to" value="{{ date_to or '' }}">
+    </label>
+    <button>Filter</button>
+    {% if q or status or date_from or date_to %}<a href="{{ url_for('bookings') }}">Clear</a>{% endif %}
+  </form>
+</div>
+
+<!-- Bookings table -->
+<div class="card">
+  <p class="muted">{{ bookings|length }} booking{{ '' if bookings|length == 1 else 's' }}</p>
+  <table>
+    <tr>
+      <th>#</th><th>Guest</th><th>Room</th><th>In</th><th>Out</th>
+      <th>Nights</th><th>Total</th><th>Paid</th><th>Status</th><th></th>
+    </tr>
+    {% for b in bookings %}
+    <tr>
+      <td>{{ b.id }}</td>
+      <td>
+        {{ b.guest }}
+        {% if b.notes %}<br><small class="muted">{{ b.notes }}</small>{% endif %}
+      </td>
+      <td>{{ b.room }}{% if b.type %} <small class="muted">({{ b.type }})</small>{% endif %}</td>
+      <td>{{ b.check_in }}</td>
+      <td>{{ b.check_out }}</td>
+      <td>{{ b.nights if b.nights is defined else '—' }}</td>
+      <td>{{ ('$%.2f'|format(b.total)) if b.total is defined else '—' }}</td>
+      <td>{{ ('$%.2f'|format(b.paid)) if b.paid is defined else '—' }}</td>
+      <td><span class="tag {{ b.status }}">{{ b.status|replace('_', ' ') }}</span></td>
+      <td class="actions">
+        {% if b.status == 'booked' %}
+          <form class="inline" method="post"
+                action="{{ url_for('booking_action', bid=b.id, action='checkin') }}">
+            <button>Check-in</button>
+          </form>
+          <form class="inline" method="post"
+                action="{{ url_for('booking_action', bid=b.id, action='cancel') }}"
+                onsubmit="return confirm('Cancel booking #{{ b.id }} for {{ b.guest }}?');">
+            <button class="red">Cancel</button>
+          </form>
+        {% elif b.status == 'checked_in' %}
+          <form class="inline" method="post"
+                action="{{ url_for('booking_action', bid=b.id, action='checkout') }}">
+            <button>Check-out</button>
+          </form>
+          <a href="{{ url_for('invoice', bid=b.id) }}">Invoice</a>
+        {% elif b.status == 'checked_out' %}
+          <a href="{{ url_for('invoice', bid=b.id) }}">Invoice</a>
+        {% endif %}
+      </td>
+    </tr>
+    {% else %}
+    <tr><td colspan="10">No bookings found. Create one with the form above.</td></tr>
+    {% endfor %}
+  </table>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+  const inEl = document.getElementById('check_in');
+  const outEl = document.getElementById('check_out');
+  const roomEl = document.getElementById('room_id');
+  const out = document.getElementById('estimate');
+
+  function update() {
+    // Check-out must be at least one day after check-in
+    if (inEl.value) {
+      const next = new Date(inEl.value);
+      next.setDate(next.getDate() + 1);
+      outEl.min = next.toISOString().slice(0, 10);
+      if (outEl.value && outEl.value < outEl.min) outEl.value = outEl.min;
+    }
+    // Show nights and estimated price
+    if (inEl.value && outEl.value) {
+      const nights = Math.round((new Date(outEl.value) - new Date(inEl.value)) / 864e5);
+      let text = nights + (nights === 1 ? ' night' : ' nights');
+      const price = parseFloat(roomEl.selectedOptions[0]?.dataset.price);
+      if (price) text += ' · estimated $' + (nights * price).toFixed(2);
+      out.textContent = text;
+    } else {
+      out.textContent = '';
+    }
+  }
+  [inEl, outEl, roomEl].forEach((el) => el.addEventListener('change', update));
+</script>
+{% endblock %}

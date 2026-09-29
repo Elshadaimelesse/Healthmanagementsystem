@@ -1,5 +1,107 @@
-{% extends "base.html" %}{% block content %}<h2>Guests</h2>
-<div class="card"><form method="post"><input name="name" placeholder="Full name" required>
-<input name="phone" placeholder="Phone"><input name="email" type="email" placeholder="Email"><button>Add guest</button></form></div>
-<div class="card"><table><tr><th>Name</th><th>Phone</th><th>Email</th></tr>
-{% for g in guests %}<tr><td>{{ g.name }}</td><td>{{ g.phone }}</td><td>{{ g.email }}</td></tr>{% endfor %}</table></div>{% endblock %}
+{% extends "base.html" %}
+{% block content %}
+<h2>Guests</h2>
+
+{% with messages = get_flashed_messages() %}
+  {% if messages %}
+    {% for m in messages %}<div class="card notice">{{ m }}</div>{% endfor %}
+  {% endif %}
+{% endwith %}
+
+<!-- Add guest -->
+<div class="card">
+  <h3>Add a guest</h3>
+  <form method="post" action="{{ url_for('guests') }}" class="grid">
+    <label>Full name
+      <input name="name" placeholder="Full name" required>
+    </label>
+    <label>Phone
+      <input name="phone" type="tel" placeholder="+251 ...">
+    </label>
+    <label>Email
+      <input name="email" type="email" placeholder="name@example.com">
+    </label>
+    <label>ID or passport number
+      <input name="id_number" placeholder="ID or passport number">
+    </label>
+    <label>Nationality
+      <input name="nationality" placeholder="Nationality">
+    </label>
+    <label>Date of birth
+      <input name="dob" type="date">
+    </label>
+    <label>Address
+      <input name="address" placeholder="Street, city, country">
+    </label>
+    <label>Notes
+      <input name="notes" placeholder="Allergies, preferences, VIP">
+    </label>
+    <button>Add guest</button>
+  </form>
+</div>
+
+<!-- Search -->
+<div class="card">
+  <form method="get" action="{{ url_for('guests') }}" class="search">
+    <input name="q" value="{{ q or '' }}" placeholder="Search by name, phone, email or ID">
+    <button>Search</button>
+    {% if q %}<a href="{{ url_for('guests') }}">Clear</a>{% endif %}
+  </form>
+</div>
+
+<!-- Guest table -->
+<div class="card">
+  <p class="muted">{{ guests|length }} guest{{ '' if guests|length == 1 else 's' }}{% if q %} matching "{{ q }}"{% endif %}</p>
+  <table>
+    <tr>
+      <th>Name</th>
+      <th>Phone</th>
+      <th>Email</th>
+      <th>ID number</th>
+      <th>Nationality</th>
+      <th>Stays</th>
+      <th>Current status</th>
+      <th>Added</th>
+      <th></th>
+    </tr>
+    {% for g in guests %}
+    <tr>
+      <td>{{ g.name }}{% if g.notes %}<br><small class="muted">{{ g.notes }}</small>{% endif %}</td>
+      <td>{{ g.phone or '—' }}</td>
+      <td>{{ g.email or '—' }}</td>
+      <td>{{ g.id_number or '—' }}</td>
+      <td>{{ g.nationality or '—' }}</td>
+      <td>{{ g.bookings|length if g.bookings is defined else 0 }}</td>
+      <td>
+        {% if g.current_room is defined and g.current_room %}
+          In room {{ g.current_room }}
+        {% else %}
+          Not staying
+        {% endif %}
+      </td>
+      <td>{{ g.created_at.strftime('%Y-%m-%d') if g.created_at else '—' }}</td>
+      <td class="actions">
+        <a href="{{ url_for('edit_guest', guest_id=g.id) }}">Edit</a>
+        <form method="post" action="{{ url_for('delete_guest', guest_id=g.id) }}"
+              onsubmit="return confirm('Delete {{ g.name }}?');">
+          <button>Delete</button>
+        </form>
+      </td>
+    </tr>
+    {% else %}
+    <tr><td colspan="9">No guests yet. Add the first guest with the form above.</td></tr>
+    {% endfor %}
+  </table>
+</div>
+
+<style>
+  .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 12px; align-items: end; }
+  .grid label { display: flex; flex-direction: column; gap: 4px; font-size: 14px; }
+  .search { display: flex; gap: 8px; align-items: center; }
+  .search input { flex: 1; }
+  .actions { display: flex; gap: 8px; align-items: center; }
+  .actions form { margin: 0; }
+  .muted { color: #5f716f; }
+  .notice { border-left: 4px solid #a9792b; }
+</style>
+{% endblock %}

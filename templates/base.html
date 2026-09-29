@@ -1,8 +1,49 @@
-<!doctype html><html><head><meta charset="utf-8"><title>Hotel Management</title>
-<link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}"></head><body>
-{% if session.user %}<nav><b style="color:#fff">🏨 Hotel</b>
-<a href="{{ url_for('dashboard') }}">Dashboard</a><a href="{{ url_for('rooms') }}">Rooms</a>
-<a href="{{ url_for('guests') }}">Guests</a><a href="{{ url_for('bookings') }}">Bookings</a>
-<span class="sp"></span><a href="{{ url_for('logout') }}">Logout ({{ session.user }})</a></nav>{% endif %}
-<main>{% for m in get_flashed_messages() %}<div class="flash">{{ m }}</div>{% endfor %}
-{% block content %}{% endblock %}</main></body></html>
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{% block title %}Hotel Management{% endblock %}</title>
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🏨</text></svg>">
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+  {% block head %}{% endblock %}
+</head>
+<body>
+
+{% if session.user %}
+<nav class="noprint">
+  <b class="brand">🏨 Hotel</b>
+  {% set links = [
+    ('dashboard', 'Dashboard'),
+    ('rooms', 'Rooms'),
+    ('guests', 'Guests'),
+    ('bookings', 'Bookings')
+  ] %}
+  {% for endpoint, label in links %}
+    <a href="{{ url_for(endpoint) }}"
+       class="{{ 'active' if request.endpoint == endpoint else '' }}"
+       {% if request.endpoint == endpoint %}aria-current="page"{% endif %}>{{ label }}</a>
+  {% endfor %}
+  <span class="sp"></span>
+  <span class="user">Signed in as {{ session.user }}</span>
+  <a href="{{ url_for('logout') }}">Logout</a>
+</nav>
+{% endif %}
+
+<main>
+  {% with messages = get_flashed_messages(with_categories=true) %}
+    {% for category, m in messages %}
+      <div class="flash {{ category }}" role="status">{{ m }}</div>
+    {% endfor %}
+  {% endwith %}
+
+  {% block content %}{% endblock %}
+</main>
+
+<footer class="noprint">
+  Hotel Management System &middot; {{ now.year if now is defined else '' }}
+</footer>
+
+{% block scripts %}{% endblock %}
+</body>
+</html>

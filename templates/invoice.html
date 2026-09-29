@@ -1,6 +1,89 @@
-{% extends "base.html" %}{% block content %}<div class="card"><h2>Invoice #{{ b.id }}</h2>
-<p><b>Guest:</b> {{ b.guest }} {{ b.email or '' }}<br><b>Room:</b> {{ b.room }} ({{ b.type }})<br><b>Stay:</b> {{ b.check_in }} → {{ b.check_out }} ({{ n }} nights)</p>
-<table><tr><td>{{ n }} × ${{ '%.2f'|format(b.price) }}</td><td>${{ '%.2f'|format(sub) }}</td></tr>
-<tr><td>Tax ({{ rate }}%)</td><td>${{ '%.2f'|format(tax) }}</td></tr>
-<tr><th>Total</th><th>${{ '%.2f'|format(total) }}</th></tr></table>
-<p class="noprint"><button onclick="window.print()">Print</button></p></div>{% endblock %}
+{% extends "base.html" %}
+{% block content %}
+<div class="card invoice">
+
+  <header class="inv-head">
+    <div>
+      <h2>Invoice #{{ '%05d'|format(b.id) }}</h2>
+      <p class="muted">Issued {{ issued or today }}</p>
+    </div>
+    <div class="hotel">
+      <b>{{ hotel.name if hotel else 'Your Hotel Name' }}</b><br>
+      {{ hotel.address if hotel else 'Hotel address' }}<br>
+      {{ hotel.phone if hotel else '' }}
+    </div>
+  </header>
+
+  <section class="inv-cols">
+    <div>
+      <h4>Billed to</h4>
+      <p>
+        <b>{{ b.guest }}</b><br>
+        {% if b.email %}{{ b.email }}<br>{% endif %}
+        {% if b.phone %}{{ b.phone }}<br>{% endif %}
+        {% if b.id_number %}ID: {{ b.id_number }}{% endif %}
+      </p>
+    </div>
+    <div>
+      <h4>Stay</h4>
+      <p>
+        <b>Room:</b> {{ b.room }} ({{ b.type }})<br>
+        <b>Check-in:</b> {{ b.check_in }}<br>
+        <b>Check-out:</b> {{ b.check_out }}<br>
+        <b>Nights:</b> {{ n }}
+      </p>
+    </div>
+    <div>
+      <h4>Status</h4>
+      <p><span class="tag {{ b.status }}">{{ b.status|replace('_', ' ') }}</span></p>
+    </div>
+  </section>
+
+  <table class="lines">
+    <tr><th>Description</th><th>Qty</th><th>Rate</th><th>Amount</th></tr>
+    <tr>
+      <td>Room {{ b.room }} ({{ b.type }})</td>
+      <td>{{ n }} nights</td>
+      <td>${{ '%.2f'|format(b.price) }}</td>
+      <td>${{ '%.2f'|format(n * b.price) }}</td>
+    </tr>
+    {% for item in items or [] %}
+    <tr>
+      <td>{{ item.name }}</td>
+      <td>{{ item.qty }}</td>
+      <td>${{ '%.2f'|format(item.price) }}</td>
+      <td>${{ '%.2f'|format(item.qty * item.price) }}</td>
+    </tr>
+    {% endfor %}
+    <tr class="sum"><td colspan="3">Subtotal</td><td>${{ '%.2f'|format(sub) }}</td></tr>
+    {% if discount %}
+    <tr class="sum"><td colspan="3">Discount</td><td>-${{ '%.2f'|format(discount) }}</td></tr>
+    {% endif %}
+    <tr class="sum"><td colspan="3">Tax ({{ rate }}%)</td><td>${{ '%.2f'|format(tax) }}</td></tr>
+    <tr class="total"><th colspan="3">Total</th><th>${{ '%.2f'|format(total) }}</th></tr>
+    <tr class="sum"><td colspan="3">Paid</td><td>${{ '%.2f'|format(paid or 0) }}</td></tr>
+    <tr class="total"><th colspan="3">Balance due</th><th>${{ '%.2f'|format(total - (paid or 0)) }}</th></tr>
+  </table>
+
+  {% if b.notes %}<p><b>Notes:</b> {{ b.notes }}</p>{% endif %}
+  <p class="muted">Payment is due at check-out. Thank you for staying with us.</p>
+
+  <p class="noprint">
+    <button onclick="window.print()">Print</button>
+    <a href="{{ url_for('bookings') }}">Back to bookings</a>
+  </p>
+</div>
+
+<style>
+  .inv-head { display: flex; justify-content: space-between; gap: 16px; border-bottom: 2px solid #12302f; padding-bottom: 12px; }
+  .hotel { text-align: right; }
+  .inv-cols { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 16px; margin: 16px 0; }
+  .inv-cols h4 { margin: 0 0 4px; color: #5f716f; font-weight: 600; }
+  .lines { width: 100%; border-collapse: collapse; }
+  .lines th, .lines td { padding: 8px 10px; border-bottom: 1px solid #d5dedc; text-align: left; }
+  .lines td:last-child, .lines th:last-child { text-align: right; }
+  .lines .total th { font-size: 1.1em; border-top: 2px solid #12302f; }
+  .muted { color: #5f716f; }
+  @media print { .noprint, nav, aside { display: none !important; } .card { border: 0; box-shadow: none; } }
+</style>
+{% endblock %}

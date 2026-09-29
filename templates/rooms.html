@@ -1,9 +1,90 @@
-{% extends "base.html" %}{% block content %}<h2>Rooms</h2>
-<div class="card"><form method="post"><input name="number" placeholder="Room no." required>
-<select name="type"><option>Single</option><option>Double</option><option>Suite</option></select>
-<input name="price" type="number" step="0.01" placeholder="Price/night" required><button>Add room</button></form></div>
-<div class="card"><table><tr><th>Room</th><th>Type</th><th>Price</th><th>Status</th><th></th></tr>
-{% for r in rooms %}<tr><td>{{ r.number }}</td><td>{{ r.type }}</td><td>${{ '%.2f'|format(r.price) }}</td>
-<td>{{ 'Occupied' if r.occupied else 'Available' }}</td>
-<td><form class="inline" method="post" action="{{ url_for('delete_room', rid=r.id) }}"><button class="red">Delete</button></form></td></tr>{% endfor %}
-</table></div>{% endblock %}
+{% extends "base.html" %}
+{% block title %}Rooms{% endblock %}
+{% block content %}
+<h2>Rooms</h2>
+
+<!-- Summary -->
+<div class="summary">
+  <div class="card"><span class="muted">Total rooms</span><strong>{{ rooms|length }}</strong></div>
+  <div class="card"><span class="muted">Available</span><strong>{{ rooms|rejectattr('occupied')|list|length }}</strong></div>
+  <div class="card"><span class="muted">Occupied</span><strong>{{ rooms|selectattr('occupied')|list|length }}</strong></div>
+</div>
+
+<!-- Add room -->
+<div class="card">
+  <h3>Add a room</h3>
+  <form method="post" action="{{ url_for('rooms') }}" class="grid">
+    <label>Room number
+      <input name="number" placeholder="Room no." required>
+    </label>
+    <label>Type
+      <select name="type">
+        {% for t in ['Single', 'Double', 'Twin', 'Suite', 'Family'] %}
+          <option>{{ t }}</option>
+        {% endfor %}
+      </select>
+    </label>
+    <label>Price per night
+      <input name="price" type="number" step="0.01" min="0" placeholder="Price/night" required>
+    </label>
+    <label>Sleeps
+      <input name="capacity" type="number" min="1" value="2">
+    </label>
+    <label>Floor
+      <input name="floor" type="number" min="0" value="1">
+    </label>
+    <label>Amenities
+      <input name="amenities" placeholder="Wi-Fi, TV, balcony, A/C">
+    </label>
+    <button>Add room</button>
+  </form>
+</div>
+
+<!-- Filters -->
+<div class="card">
+  <form method="get" action="{{ url_for('rooms') }}" class="filters">
+    <input name="q" value="{{ q or '' }}" placeholder="Search room number">
+    <select name="type">
+      <option value="">All types</option>
+      {% for t in ['Single', 'Double', 'Twin', 'Suite', 'Family'] %}
+        <option {{ 'selected' if type == t else '' }}>{{ t }}</option>
+      {% endfor %}
+    </select>
+    <select name="status">
+      {% for value, label in [('', 'Any status'), ('available', 'Available'), ('occupied', 'Occupied')] %}
+        <option value="{{ value }}" {{ 'selected' if status == value else '' }}>{{ label }}</option>
+      {% endfor %}
+    </select>
+    <button>Filter</button>
+    {% if q or type or status %}<a href="{{ url_for('rooms') }}">Clear</a>{% endif %}
+  </form>
+</div>
+
+<!-- Room table -->
+<div class="card">
+  <table>
+    <tr>
+      <th>Room</th><th>Type</th><th>Floor</th><th>Sleeps</th>
+      <th>Amenities</th><th>Price</th><th>Status</th><th></th>
+    </tr>
+    {% for r in rooms %}
+    <tr>
+      <td>{{ r.number }}</td>
+      <td>{{ r.type }}</td>
+      <td>{{ r.floor if r.floor is defined and r.floor is not none else '—' }}</td>
+      <td>{{ r.capacity or '—' }}</td>
+      <td>{{ r.amenities or '—' }}</td>
+      <td>${{ '%.2f'|format(r.price) }}</td>
+      <td>
+        <span class="tag {{ 'occupied' if r.occupied else 'available' }}">
+          {{ 'Occupied' if r.occupied else 'Available' }}
+        </span>
+      </td>
+      <td class="actions">
+        <a href="{{ url_for('edit_room', rid=r.id) }}">Edit</a>
+        {% if r.occupied %}
+          <button class="red" disabled title="Check the guest out first">Delete</button>
+        {% else %}
+          <form class="inline" method="post" action="{{ url_for('delete_room', rid=r.id) }}"
+                onsubmit="return confirm('Delete room {{ r.number }}?');">
+            <button
