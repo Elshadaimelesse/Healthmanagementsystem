@@ -1,0 +1,8 @@
+<!doctype html><html><head><meta charset="utf-8"><title>Hotel Management</title>
+<link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}"></head><body>
+{% if session.user %}<nav><b style="color:#fff">🏨 Hotel</b>
+<a href="{{ url_for('dashboard') }}">Dashboard</a><a href="{{ url_for('rooms') }}">Rooms</a>
+<a href="{{ url_for('guests') }}">Guests</a><a href="{{ url_for('bookings') }}">Bookings</a>
+<span class="sp"></span><a href="{{ url_for('logout') }}">Logout ({{ session.user }})</a></nav>{% endif %}
+<main>{% for m in get_flashed_messages() %}<div class="flash">{{ m }}</div>{% endfor %}
+{% block content %}{% endblock %}</main></body></html>

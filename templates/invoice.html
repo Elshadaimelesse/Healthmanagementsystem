@@ -1,0 +1,6 @@
+{% extends "base.html" %}{% block content %}<div class="card"><h2>Invoice #{{ b.id }}</h2>
+<p><b>Guest:</b> {{ b.guest }} {{ b.email or '' }}<br><b>Room:</b> {{ b.room }} ({{ b.type }})<br><b>Stay:</b> {{ b.check_in }} → {{ b.check_out }} ({{ n }} nights)</p>
+<table><tr><td>{{ n }} × ${{ '%.2f'|format(b.price) }}</td><td>${{ '%.2f'|format(sub) }}</td></tr>
+<tr><td>Tax ({{ rate }}%)</td><td>${{ '%.2f'|format(tax) }}</td></tr>
+<tr><th>Total</th><th>${{ '%.2f'|format(total) }}</th></tr></table>
+<p class="noprint"><button onclick="window.print()">Print</button></p></div>{% endblock %}

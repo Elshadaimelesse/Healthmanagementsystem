@@ -1,0 +1,11 @@
+CREATE TABLE IF NOT EXISTS users(id INTEGER PRIMARY KEY, username TEXT UNIQUE NOT NULL, password_hash TEXT NOT NULL);
+CREATE TABLE IF NOT EXISTS rooms(id INTEGER PRIMARY KEY, number TEXT UNIQUE NOT NULL, type TEXT NOT NULL, price REAL NOT NULL);
+CREATE TABLE IF NOT EXISTS guests(id INTEGER PRIMARY KEY, name TEXT NOT NULL, phone TEXT, email TEXT);
+CREATE TABLE IF NOT EXISTS bookings(
+  id INTEGER PRIMARY KEY,
+  guest_id INTEGER NOT NULL REFERENCES guests(id),
+  room_id INTEGER NOT NULL REFERENCES rooms(id),
+  check_in TEXT NOT NULL, check_out TEXT NOT NULL,
+  status TEXT NOT NULL DEFAULT 'booked',  -- booked | checked_in | checked_out | cancelled
+  total REAL NOT NULL DEFAULT 0
+);

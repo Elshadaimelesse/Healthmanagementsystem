@@ -1,0 +1,5 @@
+{% extends "base.html" %}{% block content %}<h2>Guests</h2>
+<div class="card"><form method="post"><input name="name" placeholder="Full name" required>
+<input name="phone" placeholder="Phone"><input name="email" type="email" placeholder="Email"><button>Add guest</button></form></div>
+<div class="card"><table><tr><th>Name</th><th>Phone</th><th>Email</th></tr>
+{% for g in guests %}<tr><td>{{ g.name }}</td><td>{{ g.phone }}</td><td>{{ g.email }}</td></tr>{% endfor %}</table></div>{% endblock %}

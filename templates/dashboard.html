@@ -1,0 +1,4 @@
+{% extends "base.html" %}{% block content %}<h2>Dashboard</h2><div class="stats">
+<div class="card"><b>{{ s.rooms }}</b>Rooms</div><div class="card"><b>{{ s.occupied }}</b>Occupied</div>
+<div class="card"><b>{{ s.upcoming }}</b>Upcoming bookings</div><div class="card"><b>{{ s.guests }}</b>Guests</div>
+<div class="card"><b>${{ '%.2f'|format(s.revenue) }}</b>Revenue (room, pre-tax)</div></div>{% endblock %}

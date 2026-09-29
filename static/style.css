@@ -1,0 +1,13 @@
+body{font-family:system-ui,sans-serif;margin:0;background:#f4f6f8;color:#222}
+nav{background:#1f3a5f;padding:12px 24px;display:flex;gap:18px;align-items:center}
+nav a{color:#fff;text-decoration:none}nav .sp{flex:1}
+main{max-width:960px;margin:24px auto;padding:0 16px}
+.card{background:#fff;padding:16px;border-radius:8px;box-shadow:0 1px 3px #0002;margin-bottom:20px}
+.stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:12px}
+.stats .card b{font-size:28px;display:block}
+table{width:100%;border-collapse:collapse}th,td{padding:8px;border-bottom:1px solid #ddd;text-align:left}
+input,select,button{padding:8px;margin:4px 4px 4px 0;border:1px solid #bbb;border-radius:4px}
+button{background:#1f3a5f;color:#fff;cursor:pointer}button.red{background:#b3261e}
+.flash{background:#fff3cd;padding:10px;border-radius:6px;margin-bottom:12px}
+form.inline{display:inline}
+@media print{nav,.noprint{display:none}}

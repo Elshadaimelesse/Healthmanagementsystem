@@ -1,0 +1,11 @@
+{% extends "base.html" %}{% block content %}<h2>Bookings</h2>
+<div class="card"><form method="post">
+<select name="guest_id" required>{% for g in guests %}<option value="{{ g.id }}">{{ g.name }}</option>{% endfor %}</select>
+<select name="room_id" required>{% for r in rooms %}<option value="{{ r.id }}">{{ r.number }} ({{ r.type }})</option>{% endfor %}</select>
+<input type="date" name="check_in" required><input type="date" name="check_out" required><button>Book</button></form></div>
+<div class="card"><table><tr><th>#</th><th>Guest</th><th>Room</th><th>In</th><th>Out</th><th>Status</th><th></th></tr>
+{% for b in bookings %}<tr><td>{{ b.id }}</td><td>{{ b.guest }}</td><td>{{ b.room }}</td><td>{{ b.check_in }}</td><td>{{ b.check_out }}</td><td>{{ b.status }}</td><td>
+{% if b.status == 'booked' %}<form class="inline" method="post" action="{{ url_for('booking_action', bid=b.id, action='checkin') }}"><button>Check-in</button></form>
+<form class="inline" method="post" action="{{ url_for('booking_action', bid=b.id, action='cancel') }}"><button class="red">Cancel</button></form>
+{% elif b.status == 'checked_in' %}<form class="inline" method="post" action="{{ url_for('booking_action', bid=b.id, action='checkout') }}"><button>Check-out</button></form>
+{% elif b.status == 'checked_out' %}<a href="{{ url_for('invoice', bid=b.id) }}">Invoice</a>{% endif %}</td></tr>{% endfor %}</table></div>{% endblock %}
